@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewSky Virtual Airlines — Crew Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#060a12;color:#c8d3e0;min-height:100vh}
+
+.header{background:linear-gradient(135deg,#0a1628,#0f1d35);border-bottom:1px solid #1a2d4a;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#38bdf8,#0284c7);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 20px rgba(56,189,248,.3)}
+.logo h1{font-size:1.3rem;font-weight:900;color:#fff;letter-spacing:3px}
+.logo small{font-size:.6rem;color:#38bdf8;font-weight:600;letter-spacing:4px;text-transform:uppercase;display:block}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.viewing-as{display:flex;align-items:center;gap:6px;background:#0c1524;border:1px solid #1e3050;border-radius:8px;padding:4px}
+.va-btn{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;color:#475569;background:transparent;border:none;font-family:inherit;transition:all .2s}
+.va-btn.active{color:#fff}
+.va-btn.active.t-active{background:linear-gradient(135deg,#b91c1c,#dc2626)}
+.va-btn.active.a-active{background:linear-gradient(135deg,#15803d,#16a34a)}
+.hdr-btn{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);color:#38bdf8;padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.72rem;font-weight:600;display:flex;align-items:center;gap:5px;font-family:inherit;transition:all .2s;position:relative}
+.hdr-btn:hover{background:rgba(56,189,248,.15)}
+.notif-count{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:.55rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:2px solid #060a12}
+.notif-count:empty,.notif-count[data-count="0"]{display:none}
+
+/* PANELS */
+.panel{display:none;background:#080e1a;border-bottom:1px solid #111d30;padding:14px 24px;animation:slideD .25s ease}
+.panel.show{display:block}
+@keyframes slideD{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.int-grid{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.int-grp{flex:1;min-width:180px}
+.int-grp label{display:block;font-size:.6rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.int-grp input{width:100%;padding:7px 10px;background:#0c1524;border:1px solid #1e3050;border-radius:5px;color:#e2e8f0;font-size:.78rem;font-family:inherit;outline:none}
+.int-grp input:focus{border-color:#38bdf8}
+.int-save{padding:7px 16px;background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:600;font-family:inherit}
+.int-status{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.int-badge{display:flex;align-items:center;gap:5px;font-size:.68rem;padding:3px 8px;border-radius:4px}
+.int-badge.on{background:rgba(34,197,94,.08);color:#22c55e;border:1px solid rgba(34,197,94,.2)}
+.int-badge.off{background:rgba(239,68,68,.08);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+.int-badge.info{background:rgba(56,189,248,.08);color:#38bdf8;border:1px solid rgba(56,189,248,.2)}
+.bdot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.bdot.g{background:#22c55e}.bdot.r{background:#ef4444}.bdot.b{background:#38bdf8}
+
+/* NOTIFICATIONS PANEL */
+.notif-panel{max-height:400px;overflow-y:auto}
+.notif-empty{text-align:center;padding:20px;color:#293548;font-size:.82rem;font-style:italic}
+.bid-card{background:#0c1524;border:1px solid #162540;border-radius:8px;padding:12px;margin-bottom:8px}
+.bid-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.bid-type{font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:1px}
+.bid-type.incoming{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.15)}
+.bid-type.sent{background:rgba(99,102,241,.1);color:#818cf8;border:1px solid rgba(99,102,241,.15)}
+.bid-type.accepted{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.15)}
+.bid-type.declined{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.15)}
+.bid-text{font-size:.75rem;color:#94a3b8;line-height:1.4}
+.bid-text strong{color:#e2e8f0}
+.bid-actions{display:flex;gap:6px;margin-top:8px}
+.bid-btn{padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.7rem;font-weight:600;border:none;font-family:inherit;transition:all .15s}
+.bid-btn.accept{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.bid-btn.accept:hover{background:rgba(34,197,94,.25)}
+.bid-btn.decline{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+.bid-btn.decline:hover{background:rgba(239,68,68,.2)}
+.bid-time{font-size:.6rem;color:#334155;margin-left:auto}
+
+/* DAY TABS */
+.day-tabs{display:flex;justify-content:center;gap:4px;padding:12px 14px;background:#080e1a;border-bottom:1px solid #111d30;flex-wrap:wrap}
+.dtab{padding:8px 16px;border-radius:7px;cursor:pointer;font-size:.75rem;font-weight:600;color:#3b4a63;background:transparent;border:1px solid transparent;transition:all .2s;user-select:none;position:relative}
+.dtab:hover{background:#0d1628;color:#94a3b8;border-color:#1a2d47}
+.dtab.active{background:linear-gradient(135deg,#0c4a6e,#0369a1);color:#fff;border-color:#0284c7;box-shadow:0 2px 12px rgba(3,105,161,.3)}
+.dtab .td{position:absolute;top:3px;right:3px;width:5px;height:5px;background:#22c55e;border-radius:50%}
+.dtab .ds{display:none}
+@media(max-width:580px){.dtab .df{display:none}.dtab .ds{display:inline}.dtab{padding:8px 12px}}
+
+/* LEGEND */
+.legend{display:flex;justify-content:center;gap:16px;padding:10px;flex-wrap:wrap}
+.lg-i{display:flex;align-items:center;gap:5px;font-size:.68rem;color:#475569}
+.lg-d{width:9px;height:9px;border-radius:3px}
+.lg-d.sh{background:#38bdf8}.lg-d.md{background:#a78bfa}.lg-d.lg{background:#fbbf24}.lg-d.sp{background:linear-gradient(135deg,#f97316,#fb923c)}.lg-d.ov{background:linear-gradient(135deg,#06b6d4,#22d3ee)}
+
+.container{max-width:1480px;margin:0 auto;padding:20px 20px 50px}
+
+/* PILOTS GRID */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:900px){.pg{grid-template-columns:1fr}}
+
+.pcol{background:#0b1422;border-radius:13px;border:1px solid #15233a;overflow:hidden}
+.phead{padding:16px 20px;display:flex;align-items:center;gap:11px;border-bottom:1px solid #15233a;background:linear-gradient(135deg,rgba(255,255,255,.01),rgba(255,255,255,.025))}
+.pav{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.05rem;font-weight:800;color:#fff;flex-shrink:0}
+.pav.th{background:linear-gradient(135deg,#b91c1c,#dc2626);box-shadow:0 3px 10px rgba(220,38,38,.25)}
+.pav.al{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 3px 10px rgba(22,163,74,.25)}
+.pname{font-size:1.05rem;font-weight:700;color:#f1f5f9}
+.prole{font-size:.65rem;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+.pstats{margin-left:auto;display:flex;gap:14px}
+.pst{text-align:center}
+.pst .n{font-size:1.2rem;font-weight:800;color:#38bdf8;line-height:1}
+.pst .l{font-size:.55rem;color:#475569;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+
+.flist{padding:12px;display:flex;flex-direction:column;gap:10px}
+.flist:empty::after{content:"Rest day — No flights";display:block;text-align:center;padding:28px;color:#1e3050;font-size:.82rem;font-style:italic}
+
+/* FLIGHT CARDS */
+.fc{background:#080e18;border-radius:10px;border:1px solid #152236;padding:14px 16px;transition:all .2s;position:relative;overflow:hidden}
+.fc:hover{border-color:#1e3a5f;transform:translateY(-1px);box-shadow:0 3px 18px rgba(0,0,0,.35)}
+.fc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.fc.sh::before{background:linear-gradient(180deg,#38bdf8,#0284c7)}
+.fc.md::before{background:linear-gradient(180deg,#a78bfa,#7c3aed)}
+.fc.lg::before{background:linear-gradient(180deg,#fbbf24,#d97706)}
+.fc.overnight{border-left:3px solid #06b6d4}
+.fc.overnight::before{background:linear-gradient(180deg,#06b6d4,#0891b2)}
+.fc.split-card{border-left:3px solid #f97316}
+.fc.split-card::before{background:linear-gradient(180deg,#f97316,#ea580c)}
+
+/* CARD HEADER */
+.fch{display:flex;align-items:center;gap:5px;margin-bottom:9px;flex-wrap:wrap}
+.fn{font-size:.73rem;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.3px}
+.fn.out{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.15)}
+.fn.ret{background:rgba(125,211,252,.06);color:#7dd3fc;border:1px solid rgba(125,211,252,.1)}
+.fn.ov-out{background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.15)}
+.fn.ov-ret{background:rgba(6,182,212,.06);color:#67e8f9;border:1px solid rgba(6,182,212,.1)}
+.fn.sp-out{background:rgba(249,115,22,.1);color:#fb923c;border:1px solid rgba(249,115,22,.15)}
+.fn.sp-ret{background:rgba(249,115,22,.06);color:#fdba74;border:1px solid rgba(249,115,22,.1)}
+.sep{color:#293548;font-size:.65rem;font-weight:700}
+.hpill{margin-left:auto;font-size:.52rem;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:1px}
+.hpill.sh{background:rgba(56,189,248,.07);color:#38bdf8}
+.hpill.md{background:rgba(167,139,250,.07);color:#a78bfa}
+.hpill.lg{background:rgba(251,191,36,.07);color:#fbbf24}
+
+.type-tag{font-size:.55rem;font-weight:700;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;margin-right:2px}
+.type-tag.rt-tag{background:rgba(56,189,248,.06);color:#38bdf8}
+.type-tag.ov-tag{background:rgba(6,182,212,.08);color:#22d3ee}
+.type-tag.sp-tag{background:rgba(249,115,22,.08);color:#f97316}
+
+.info-bar{font-size:.65rem;color:#475569;padding:4px 8px;border-radius:4px;margin-bottom:8px;display:flex;align-items:center;gap:4px;line-height:1.3}
+.info-bar.overnight-info{background:rgba(6,182,212,.04);border-left:2px solid #06b6d4}
+.info-bar.split-info{background:rgba(249,115,22,.04);border-left:2px solid #f97316}
+.info-bar strong{color:#e2e8f0}
+.info-bar .hl-ov{color:#22d3ee;font-weight:600}
+.info-bar .hl-sp{color:#f97316;font-weight:600}
+
+/* ROUTE VIS */
+.rvis{display:flex;align-items:center;gap:0;margin-bottom:10px}
+.apt{text-align:center;min-width:52px;cursor:pointer;transition:all .15s}
+.apt:hover{transform:scale(1.04)}
+.apt:hover .icao{color:#38bdf8}
+.icao{font-size:1.1rem;font-weight:800;color:#e2e8f0;display:block;line-height:1}
+.city{font-size:.58rem;color:#475569;display:block;margin-top:2px;max-width:75px;line-height:1.1}
+.chartlnk{font-size:.5rem;color:#0ea5e9;display:block;margin-top:1px;opacity:0;transition:opacity .15s}
+.apt:hover .chartlnk{opacity:1}
+.conn{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-width:45px;margin:0 5px}
+.conn .cl{position:absolute;width:100%;height:1px;top:50%}
+.conn.sh .cl{background:linear-gradient(90deg,#38bdf8,#0284c7)}
+.conn.md .cl{background:linear-gradient(90deg,#a78bfa,#7c3aed)}
+.conn.lg .cl{background:linear-gradient(90deg,#fbbf24,#d97706)}
+.conn .ci{position:relative;z-index:1;font-size:.75rem;background:#080e18;padding:0 3px}
+.cd{width:4px;height:4px;border-radius:50%;position:absolute;top:50%;transform:translateY(-50%)}
+.cd.l{left:0}.cd.r{right:0}
+.conn.sh .cd{background:#38bdf8}.conn.md .cd{background:#a78bfa}.conn.lg .cd{background:#fbbf24}
+
+.cfoot{display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid #121e30;flex-wrap:wrap}
+.acb{font-size:.66rem;font-weight:600;color:#4ade80;background:rgba(74,222,128,.06);padding:2px 6px;border-radius:3px;border:1px solid rgba(74,222,128,.1)}
+.acreg{font-size:.65rem;color:#475569}
+.cacts{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+.sbtn{font-size:.58rem;font-weight:600;padding:3px 6px;border-radius:3px;cursor:pointer;border:1px solid;font-family:inherit;display:flex;align-items:center;gap:2px;white-space:nowrap;transition:all .15s}
+.sbtn.sb{background:rgba(99,102,241,.06);color:#818cf8;border-color:rgba(99,102,241,.15)}
+.sbtn.sb:hover{background:rgba(99,102,241,.15)}
+.sbtn.ng{background:rgba(6,182,212,.06);color:#22d3ee;border-color:rgba(6,182,212,.15)}
+.sbtn.ng:hover{background:rgba(6,182,212,.15)}
+.sbtn.split-bid{background:rgba(251,191,36,.06);color:#fbbf24;border-color:rgba(251,191,36,.15)}
+.sbtn.split-bid:hover{background:rgba(251,191,36,.15)}
+
+/* MULTI-LEG */
+.mlc{background:#080e18;border-radius:10px;border:1px solid #152236;padding:14px 16px;position:relative;overflow:hidden}
+.mlc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#f97316,#a78bfa);border-radius:3px 0 0 3px}
+.mlh{font-size:.6rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.mlh::before{content:'⚡'}
+.legs{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.leg{display:flex;align-items:center;gap:5px;font-size:.72rem;padding:3px 6px;background:rgba(255,255,255,.015);border-radius:3px}
+.leg .lfn{font-weight:700;color:#a78bfa;min-width:58px}
+.leg .lc{color:#94a3b8;font-weight:500;cursor:pointer}.leg .lc:hover{color:#38bdf8}
+.leg .la{color:#334155;font-size:.6rem}
+.leg .lcity{color:#475569;font-size:.6rem;margin-left:2px}
+
+/* SECTIONS */
+.sec{margin-top:24px;background:#0b1422;border-radius:13px;border:1px solid #15233a;overflow:hidden}
+.sec-t{padding:12px 20px;border-bottom:1px solid #15233a;font-size:.78rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:6px}
+
+/* AIRCRAFT TRACKER */
+.ac-tracker{overflow-x:auto}
+.act{width:100%;border-collapse:collapse;font-size:.72rem}
+.act th{padding:8px 12px;text-align:left;color:#475569;font-weight:600;border-bottom:1px solid #1e293b;font-size:.62rem;text-transform:uppercase;letter-spacing:.8px}
+.act td{padding:6px 12px;border-bottom:1px solid #0f1929}
+.act tr:hover{background:rgba(56,189,248,.02)}
+.pos-badge{font-size:.65rem;font-weight:600;padding:2px 6px;border-radius:3px;display:inline-block}
+.pos-badge.home{background:rgba(34,197,94,.08);color:#22c55e;border:1px solid rgba(34,197,94,.15)}
+.pos-badge.away{background:rgba(251,191,36,.08);color:#fbbf24;border:1px solid rgba(251,191,36,.15)}
+
+/* FLEET + ROUTE TABLE */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1px;background:#15233a}
+.fi{background:#0b1422;padding:10px 14px;display:flex;align-items:center;gap:9px}
+.fii{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:800;color:#fff;flex-shrink:0}
+.fii.nb{background:linear-gradient(135deg,#0c4a6e,#0369a1)}.fii.wb{background:linear-gradient(135deg,#78350f,#b45309)}
+.fin{font-size:.78rem;font-weight:600;color:#e2e8f0}
+.fis{font-size:.62rem;color:#475569;margin-top:1px}
+
+.rtbl{width:100%;border-collapse:collapse;font-size:.72rem}
+.rtbl th{padding:8px 12px;text-align:left;color:#475569;font-weight:600;border-bottom:1px solid #1e293b;font-size:.62rem;text-transform:uppercase;letter-spacing:.8px}
+.rtbl td{padding:6px 12px;border-bottom:1px solid #0f1929;white-space:nowrap}
+.rtbl tr:hover{background:rgba(56,189,248,.02)}
+
+.footer{text-align:center;padding:16px;color:#1a2540;font-size:.65rem;border-top:1px solid #0e1828;margin-top:16px}
+
+.day-content{animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#0c1524;border:1px solid #1e3050;border-radius:12px;padding:24px;max-width:400px;width:90%;animation:fadeUp .2s ease}
+.modal h3{font-size:1rem;color:#f1f5f9;margin-bottom:12px}
+.modal p{font-size:.8rem;color:#94a3b8;margin-bottom:16px;line-height:1.4}
+.modal-btns{display:flex;gap:8px}
+.mbtn{flex:1;padding:8px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;border:none;font-family:inherit;transition:all .15s}
+.mbtn.primary{background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff}
+.mbtn.primary:hover{background:linear-gradient(135deg,#0ea5e9,#0284c7)}
+.mbtn.secondary{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+.mbtn.ghost{background:rgba(71,85,105,.1);color:#94a3b8;border:1px solid #1e3050}
+
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#060a12}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">
+        <div class="logo-icon">✈</div>
+        <div><h1>NEWSKY</h1><small>Virtual Airlines — EGKK</small></div>
+    </div>
+    <div class="hdr-right">
+        <div class="viewing-as">
+            <button class="va-btn active t-active" onclick="setViewer('Thomas')" id="vaThomas">Thomas</button>
+            <button class="va-btn" onclick="setViewer('Alex')" id="vaAlex">Alex</button>
+        </div>
+        <button class="hdr-btn" onclick="togglePanel('notifPanel')">
+            🔔 Bids <span class="notif-count" id="notifCount"></span>
+        </button>
+        <button class="hdr-btn" onclick="togglePanel('intPanel')">⚙ Integrations</button>
+    </div>
+</div>
+
+<div class="panel" id="intPanel">
+    <div class="int-grid">
+        <div class="int-grp"><label>SimBrief Pilot ID</label><input type="text" id="sbId" placeholder="Your SimBrief Pilot ID"/></div>
+        <div class="int-grp" style="min-width:120px"><label>OFP Format</label><input type="text" id="sbFmt" placeholder="LIDO" value="LIDO"/></div>
+        <button class="int-save" onclick="saveIntSettings()">Save</button>
+    </div>
+    <div class="int-status" id="intStatus"></div>
+</div>
+
+<div class="panel" id="notifPanel">
+    <div class="notif-panel" id="notifList"></div>
+</div>
+
+<div class="day-tabs" id="dayTabs"></div>
+
+<div class="legend">
+    <div class="lg-i"><div class="lg-d sh"></div>Short-haul</div>
+    <div class="lg-i"><div class="lg-d md"></div>Medium-haul</div>
+    <div class="lg-i"><div class="lg-d lg"></div>Long-haul</div>
+    <div class="lg-i"><div class="lg-d ov"></div>Overnight</div>
+    <div class="lg-i"><div class="lg-d sp"></div>Split Duty</div>
+</div>
+
+<div class="container" id="main"></div>
+
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+    <div class="modal" id="modal"></div>
+</div>
+
+<script>
+// ══════════ DATA ══════════
+const DAYS=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+const DL=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+const AP={
+    EGKK:{c:'London Gatwick'},EGPH:{c:'Edinburgh'},EGJJ:{c:'Jersey'},EIDW:{c:'Dublin'},
+    LFPG:{c:'Paris CDG'},LECU:{c:'Madrid'},LIRF:{c:'Rome FCO'},LIRN:{c:'Naples'},
+    EDDF:{c:'Frankfurt'},EDDB:{c:'Berlin BER'},EDDN:{c:'Nuremberg'},LOWW:{c:'Vienna'},
+    LZIB:{c:'Bratislava'},LZKZ:{c:'Košice'},LZTT:{c:'Poprad'},
+    KJFK:{c:'New York JFK'},OMDB:{c:'Dubai'},TBPB:{c:'Barbados'}
+};
+
+const FLEET=[
+    {name:'Lady Emmeline',type:'Boeing 777-300ER',code:'B77W',cat:'wb'},
+    {name:'Fearless Lady',type:'Airbus A350-1000',code:'A35K',cat:'wb'},
+    {name:'G-BHJM',type:'Airbus A320',code:'A320',cat:'nb'},
+    {name:'G-JHAM',type:'Airbus A321',code:'A321',cat:'nb'},
+    {name:'G-LANM',type:'Airbus A321',code:'A321',cat:'nb'},
+    {name:'G-NGAM',type:'Airbus A320',code:'A320',cat:'nb'},
+    {name:'G-NGGM',type:'Airbus A319',code:'A319',cat:'nb'},
+    {name:'G-TMGA',type:'Airbus A319',code:'A319',cat:'nb'}
+];
+
+// Aircraft end-of-day positions [Mon,Tue,Wed,Thu,Fri,Sat,Sun]
+const ACP={
+    'Lady Emmeline':['EGKK','EGKK','EGKK','EGKK','KJFK','EGKK','EGKK'],
+    'Fearless Lady':['EGKK','EGKK','EGKK','EGKK','EGKK','OMDB','EGKK'],
+    'G-BHJM':['LFPG','EGKK','EGKK','EGKK','EGKK','LZTT','EGKK'],
+    'G-JHAM':['EGKK','EGKK','LOWW','EGKK','EGKK','EGKK','EGKK'],
+    'G-LANM':['LIRN','EGKK','EGKK','EGKK','LIRN','EGKK','EGKK'],
+    'G-NGAM':['EGKK','EDDN','EGKK','LECU','EGKK','EGKK','EGKK'],
+    'G-NGGM':['EGKK','EGKK','EGKK','EGKK','EGKK','EGKK','EGKK'],
+    'G-TMGA':['EGKK','EGKK','EGKK','EGKK','EGKK','EGKK','EGKK']
+};
+
+const R={ // route ref for flight number table
+    out:['NS 115','NS 107','NS 2155','NS 304','NS 456','NS 560','NS 608','NS 692','NS 694','NS 696','NS 698','NS 4696','NS 830','NS 902','NS 960','NS 984','NS 1440','NS 2174'],
+    ret:['NS 116','NS 108','NS 2156','NS 305','NS 457','NS 561','NS 609','NS 693','NS 695','NS 697','NS 699','NS 4697','NS 831','NS 903','NS 961','NS 985','NS 1441','NS 2175'],
+    route:['EGKK ↔ KJFK','EGKK ↔ OMDB','EGKK ↔ TBPB','EGKK ↔ LFPG','EGKK ↔ LECU','EGKK ↔ LIRF','EGKK ↔ LIRN','EGKK ↔ LZTT','EGKK ↔ LOWW','EGKK ↔ LZKZ','EGKK ↔ LZIB','LZKZ ↔ LZIB','EGKK ↔ EIDW','EGKK ↔ EDDF','EGKK ↔ EDDN','EGKK ↔ EDDB','EGKK ↔ EGPH','EGKK ↔ EGJJ'],
+    name:['New York','Dubai','Barbados','Paris','Madrid','Rome','Naples','Poprad','Vienna','Košice','Bratislava','Košice–Bratislava','Dublin','Frankfurt','Nuremberg','Berlin','Edinburgh','Jersey'],
+    haul:['long','long','long','short','medium','medium','medium','medium','medium','medium','medium','short','short','medium','medium','medium','short','short']
+};
+
+// ─── SCHEDULE ───
+// type: rt=roundtrip, out=outbound(stays), ret=return, ml=multileg
+// paired: {fn,pilot,day} for out/ret links
+
+const S={
+monday:{
+    thomas:[
+        {t:'rt',oF:'NS 1440',rF:'NS 1441',to:'EGPH',ac:'Airbus A319',cd:'A319',rg:'G-NGGM',h:'short'},
+        {t:'rt',oF:'NS 830',rF:'NS 831',to:'EIDW',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'short'}
+    ],
+    alex:[
+        {t:'rt',oF:'NS 2174',rF:'NS 2175',to:'EGJJ',ac:'Airbus A319',cd:'A319',rg:'G-TMGA',h:'short'},
+        {t:'out',fn:'NS 304',to:'LFPG',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'short',
+         p:{fn:'NS 305',who:'Thomas',day:'Tuesday'}},
+        {t:'out',fn:'NS 608',to:'LIRN',ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium',
+         p:{fn:'NS 609',who:'Alex',day:'Tuesday'}}
+    ]
+},
+tuesday:{
+    thomas:[
+        {t:'ret',fn:'NS 305',fr:'LFPG',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'short',
+         p:{fn:'NS 304',who:'Alex',day:'Monday'}},
+        {t:'rt',oF:'NS 984',rF:'NS 985',to:'EDDB',ac:'Airbus A321',cd:'A321',rg:'G-JHAM',h:'medium'}
+    ],
+    alex:[
+        {t:'rt',oF:'NS 2174',rF:'NS 2175',to:'EGJJ',ac:'Airbus A319',cd:'A319',rg:'G-TMGA',h:'short'},
+        {t:'ret',fn:'NS 609',fr:'LIRN',ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium',
+         p:{fn:'NS 608',who:'Alex',day:'Monday'}},
+        {t:'out',fn:'NS 960',to:'EDDN',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'medium',
+         p:{fn:'NS 961',who:'Thomas',day:'Wednesday'}}
+    ]
+},
+wednesday:{
+    thomas:[
+        {t:'rt',oF:'NS 1440',rF:'NS 1441',to:'EGPH',ac:'Airbus A319',cd:'A319',rg:'G-NGGM',h:'short'},
+        {t:'ret',fn:'NS 961',fr:'EDDN',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'medium',
+         p:{fn:'NS 960',who:'Alex',day:'Tuesday'}},
+        {t:'out',fn:'NS 694',to:'LOWW',ac:'Airbus A321',cd:'A321',rg:'G-JHAM',h:'medium',
+         p:{fn:'NS 695',who:'Alex',day:'Thursday'}}
+    ],
+    alex:[
+        {t:'ml',label:'Slovakia Circuit',legs:[
+            {fn:'NS 696',fr:'EGKK',to:'LZKZ'},
+            {fn:'NS 4696',fr:'LZKZ',to:'LZIB'},
+            {fn:'NS 4697',fr:'LZIB',to:'LZKZ'},
+            {fn:'NS 697',fr:'LZKZ',to:'EGKK'}
+        ],ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium'},
+        {t:'rt',oF:'NS 830',rF:'NS 831',to:'EIDW',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'short'}
+    ]
+},
+thursday:{
+    thomas:[
+        {t:'rt',oF:'NS 1440',rF:'NS 1441',to:'EGPH',ac:'Airbus A319',cd:'A319',rg:'G-NGGM',h:'short'},
+        {t:'rt',oF:'NS 304',rF:'NS 305',to:'LFPG',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'short'}
+    ],
+    alex:[
+        {t:'rt',oF:'NS 2174',rF:'NS 2175',to:'EGJJ',ac:'Airbus A319',cd:'A319',rg:'G-TMGA',h:'short'},
+        {t:'ret',fn:'NS 695',fr:'LOWW',ac:'Airbus A321',cd:'A321',rg:'G-JHAM',h:'medium',
+         p:{fn:'NS 694',who:'Thomas',day:'Wednesday'}},
+        {t:'out',fn:'NS 456',to:'LECU',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'medium',
+         p:{fn:'NS 457',who:'Alex',day:'Friday'}}
+    ]
+},
+friday:{
+    thomas:[
+        {t:'out',fn:'NS 115',to:'KJFK',ac:'Boeing 777-300ER',cd:'B77W',rg:'Lady Emmeline',h:'long',
+         p:{fn:'NS 116',who:'Thomas',day:'Saturday'}}
+    ],
+    alex:[
+        {t:'rt',oF:'NS 2174',rF:'NS 2175',to:'EGJJ',ac:'Airbus A319',cd:'A319',rg:'G-TMGA',h:'short'},
+        {t:'ret',fn:'NS 457',fr:'LECU',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'medium',
+         p:{fn:'NS 456',who:'Alex',day:'Thursday'}},
+        {t:'rt',oF:'NS 902',rF:'NS 903',to:'EDDF',ac:'Airbus A321',cd:'A321',rg:'G-JHAM',h:'medium'},
+        {t:'out',fn:'NS 608',to:'LIRN',ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium',
+         p:{fn:'NS 609',who:'Alex',day:'Saturday'}}
+    ]
+},
+saturday:{
+    thomas:[
+        {t:'ret',fn:'NS 116',fr:'KJFK',ac:'Boeing 777-300ER',cd:'B77W',rg:'Lady Emmeline',h:'long',
+         p:{fn:'NS 115',who:'Thomas',day:'Friday'}},
+        {t:'rt',oF:'NS 984',rF:'NS 985',to:'EDDB',ac:'Airbus A320',cd:'A320',rg:'G-NGAM',h:'medium'}
+    ],
+    alex:[
+        {t:'out',fn:'NS 107',to:'OMDB',ac:'Airbus A350-1000',cd:'A35K',rg:'Fearless Lady',h:'long',
+         p:{fn:'NS 108',who:'Alex',day:'Sunday'}},
+        {t:'ret',fn:'NS 609',fr:'LIRN',ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium',
+         p:{fn:'NS 608',who:'Alex',day:'Friday'}},
+        {t:'out',fn:'NS 692',to:'LZTT',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'medium',
+         p:{fn:'NS 693',who:'Thomas',day:'Sunday'}}
+    ]
+},
+sunday:{
+    thomas:[
+        {t:'ret',fn:'NS 693',fr:'LZTT',ac:'Airbus A320',cd:'A320',rg:'G-BHJM',h:'medium',
+         p:{fn:'NS 692',who:'Alex',day:'Saturday'}},
+        {t:'rt',oF:'NS 694',rF:'NS 695',to:'LOWW',ac:'Airbus A321',cd:'A321',rg:'G-JHAM',h:'medium'}
+    ],
+    alex:[
+        {t:'ret',fn:'NS 108',fr:'OMDB',ac:'Airbus A350-1000',cd:'A35K',rg:'Fearless Lady',h:'long',
+         p:{fn:'NS 107',who:'Alex',day:'Saturday'}},
+        {t:'rt',oF:'NS 2174',rF:'NS 2175',to:'EGJJ',ac:'Airbus A319',cd:'A319',rg:'G-TMGA',h:'short'},
+        {t:'rt',oF:'NS 456',rF:'NS 457',to:'LECU',ac:'Airbus A321',cd:'A321',rg:'G-LANM',h:'medium'}
+    ]
+}
+};
+
+// ══════════ STATE ══════════
+let viewer=localStorage.getItem('ns_viewer')||'Thomas';
+let bids=JSON.parse(localStorage.getItem('ns_bids')||'[]');
+const todayIdx=(new Date().getDay()+6)%7;
+let activeDay=DAYS[todayIdx];
+
+function getSbId(){return localStorage.getItem('ns_sb_id')||''}
+function getSbFmt(){return localStorage.getItem('ns_sb_fmt')||'LIDO'}
+function saveBids(){localStorage.setItem('ns_bids',JSON.stringify(bids))}
+
+// ══════════ SIMBRIEF + NAVIGRAPH ══════════
+function openSB(orig,dest,type,fn){
+    const id=getSbId(),fmt=getSbFmt(),num=fn.replace(/NS\s*/,''),r='';
+    let u=`https://www.simbrief.com/system/dispatch.php?airline=NS&fltnum=${num}&type=${type}&orig=${orig}&dest=${dest}&planformat=${fmt.toLowerCase()}`;
+    if(id)u+=`&static_id=${id}`;
+    window.open(u,'_blank');
+}
+function openNG(icao){window.open(`https://charts.navigraph.com/airport/${icao}`,'_blank')}
+
+// ══════════ BID SYSTEM ══════════
+function proposeSplit(day,outFn,retFn,dest,ac,reg,legToGive){
+    const other=viewer==='Thomas'?'Alex':'Thomas';
+    bids.push({
+        id:Date.now(),from:viewer,to:other,day,outFn,retFn,dest,ac,reg,
+        leg:legToGive, // 'outbound' or 'return'
+        status:'pending',
+        ts:new Date().toISOString()
+    });
+    saveBids();
+    renderNotifs();
+    closeModalForce();
+}
+
+function respondBid(id,accept){
+    const b=bids.find(x=>x.id===id);
+    if(b){b.status=accept?'accepted':'declined';saveBids();renderNotifs();render()}
+}
+
+function clearBid(id){
+    bids=bids.filter(x=>x.id!==id);
+    saveBids();renderNotifs();
+}
+
+function getPending(){return bids.filter(b=>b.to===viewer&&b.status==='pending').length}
+
+function renderNotifs(){
+    const el=document.getElementById('notifList');
+    const ct=document.getElementById('notifCount');
+    const pc=getPending();
+    ct.textContent=pc||'';
+    ct.dataset.count=pc;
+    
+    const mine=bids.filter(b=>b.to===viewer||b.from===viewer).sort((a,b)=>b.id-a.id);
+    if(!mine.length){el.innerHTML='<div class="notif-empty">No split duty bids yet</div>';return}
+    
+    el.innerHTML=mine.map(b=>{
+        const isIncoming=b.to===viewer;
+        const isPending=b.status==='pending';
+        let typeClass=isIncoming?(isPending?'incoming':''):(isPending?'sent':'');
+        if(b.status==='accepted')typeClass='accepted';
+        if(b.status==='declined')typeClass='declined';
+        const typeLabel=b.status!=='pending'?b.status:(isIncoming?'incoming bid':'sent bid');
+        const legLabel=b.leg==='outbound'?b.outFn:b.retFn;
+        const kept=b.leg==='outbound'?b.retFn:b.outFn;
+        const dt=new Date(b.ts);
+        const timeStr=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        
+        return `<div class="bid-card">
+            <div class="bid-header">
+                <span class="bid-type ${typeClass}">${typeLabel}</span>
+                <span class="bid-time">${timeStr}</span>
+            </div>
+            <div class="bid-text">
+                <strong>${b.from}</strong> proposes to give <strong>${legLabel}</strong> 
+                (${b.leg} to <strong>${(AP[b.dest]||{c:b.dest}).c}</strong>) to <strong>${b.to}</strong>.<br>
+                ${b.from} keeps <strong>${kept}</strong> · ${b.day} · ${b.ac} ${b.reg}
+            </div>
+            ${isIncoming&&isPending?`
+                <div class="bid-actions">
+                    <button class="bid-btn accept" onclick="respondBid(${b.id},true)">✓ Accept</button>
+                    <button class="bid-btn decline" onclick="respondBid(${b.id},false)">✗ Decline</button>
+                </div>
+            `:''}
+            ${b.status!=='pending'?`<div class="bid-actions"><button class="bid-btn decline" onclick="clearBid(${b.id})" style="border-color:#1e3050;color:#475569;background:transparent">Dismiss</button></div>`:''}
+        </div>`;
+    }).join('');
+}
+
+// ══════════ MODAL ══════════
+function showSplitModal(day,outFn,retFn,dest,ac,reg){
+    const other=viewer==='Thomas'?'Alex':'Thomas';
+    const destCity=(AP[dest]||{c:dest}).c;
+    document.getElementById('modal').innerHTML=`
+        <h3>Propose Split Duty</h3>
+        <p>Which leg of <strong>${outFn} / ${retFn}</strong> (${destCity}) would you like to give to <strong>${other}</strong>?</p>
+        <div class="modal-btns" style="flex-direction:column;gap:8px">
+            <button class="mbtn primary" onclick="proposeSplit('${day}','${outFn}','${retFn}','${dest}','${ac}','${reg}','outbound')">
+                Give outbound <strong>${outFn}</strong> → ${other} flies EGKK → ${dest}
+            </button>
+            <button class="mbtn primary" onclick="proposeSplit('${day}','${outFn}','${retFn}','${dest}','${ac}','${reg}','return')">
+                Give return <strong>${retFn}</strong> → ${other} flies ${dest} → EGKK
+            </button>
+            <button class="mbtn ghost" onclick="closeModalForce()">Cancel</button>
+        </div>
+    `;
+    document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(e){if(e.target===e.currentTarget)closeModalForce()}
+function closeModalForce(){document.getElementById('modalBg').classList.remove('show')}
+
+// ══════════ VIEWER ══════════
+function setViewer(v){
+    viewer=v;localStorage.setItem('ns_viewer',v);
+    document.getElementById('vaThomas').className='va-btn'+(v==='Thomas'?' active t-active':'');
+    document.getElementById('vaAlex').className='va-btn'+(v==='Alex'?' active a-active':'');
+    renderNotifs();render();
+}
+
+// ══════════ PANELS ══════════
+function togglePanel(id){
+    const el=document.getElementById(id);
+    const wasOpen=el.classList.contains('show');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+    if(!wasOpen)el.classList.add('show');
+}
+
+// ══════════ INTEGRATION SETTINGS ══════════
+function saveIntSettings(){
+    localStorage.setItem('ns_sb_id',document.getElementById('sbId').value.trim());
+    localStorage.setItem('ns_sb_fmt',document.getElementById('sbFmt').value.trim()||'LIDO');
+    updateIntSt();
+}
+function updateIntSt(){
+    const id=getSbId();
+    document.getElementById('intStatus').innerHTML=`
+        <div class="int-badge ${id?'on':'off'}"><div class="bdot ${id?'g':'r'}"></div>SimBrief: ${id?'Connected ('+id+')':'Not configured'}</div>
+        <div class="int-badge info"><div class="bdot b"></div>Navigraph Charts: Available</div>
+    `;
+}
+function loadSettings(){
+    document.getElementById('sbId').value=getSbId();
+    document.getElementById('sbFmt').value=getSbFmt();
+    updateIntSt();
+}
+
+// ══════════ RENDERING ══════════
+function aptH(icao){return `<div class="apt" onclick="openNG('${icao}')" title="Open ${icao} charts"><span class="icao">${icao}</span><span class="city">${(AP[icao]||{c:icao}).c}</span><span class="chartlnk">📊 Charts</span></div>`}
+
+function routeVis(from,to,h){
+    return `<div class="rvis">${aptH(from)}<div class="conn ${h}"><div class="cd l"></div><div class="cl"></div><span class="ci">✈</span><div class="cd r"></div></div>${aptH(to)}</div>`;
+}
+
+function sbB(orig,dest,cd,fn,label){return `<button class="sbtn sb" onclick="openSB('${orig}','${dest}','${cd}','${fn}')">📋 ${label}</button>`}
+
+function isSplitByBid(day,outFn,retFn){
+    return bids.find(b=>b.day===day&&b.outFn===outFn&&b.retFn===retFn&&b.status==='accepted');
+}
+
+function cardRT(f,pilot,day){
+    const acceptedBid=isSplitByBid(day,f.oF,f.rF);
+    const isMyFlight=(pilot.toLowerCase()===viewer.toLowerCase());
+    
+    if(acceptedBid){
+        const other=acceptedBid.from===viewer?acceptedBid.to:acceptedBid.from;
+        const iKeep=acceptedBid.leg==='outbound'?'return':'outbound';
+        const myFn=iKeep==='outbound'?f.oF:f.rF;
+        const theirFn=iKeep==='outbound'?f.rF:f.oF;
+        return `<div class="fc split-card ${f.h}">
+            <div class="fch">
+                <span class="type-tag sp-tag">Split ✓</span>
+                <span class="fn sp-out">${f.oF} →</span><span class="sep">⟷</span><span class="fn sp-ret">← ${f.rF}</span>
+                <span class="hpill ${f.h}">${f.h}</span>
+            </div>
+            <div class="info-bar split-info">Split accepted: You fly <span class="hl-sp">${myFn}</span> · <strong>${other}</strong> flies <span class="hl-sp">${theirFn}</span></div>
+            ${routeVis('EGKK',f.to,f.h)}
+            <div class="cfoot">
+                <span class="acb">${f.ac}</span><span class="acreg">${f.rg}</span>
+                <div class="cacts">
+                    ${sbB('EGKK',f.to,f.cd,f.oF,f.oF)}${sbB(f.to,'EGKK',f.cd,f.rF,f.rF)}
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    return `<div class="fc ${f.h}">
+        <div class="fch">
+            <span class="type-tag rt-tag">Roundtrip</span>
+            <span class="fn out">${f.oF} →</span><span class="sep">⟷</span><span class="fn ret">← ${f.rF}</span>
+            <span class="hpill ${f.h}">${f.h}</span>
+        </div>
+        ${routeVis('EGKK',f.to,f.h)}
+        <div class="cfoot">
+            <span class="acb">${f.ac}</span><span class="acreg">${f.rg}</span>
+            <div class="cacts">
+                ${sbB('EGKK',f.to,f.cd,f.oF,f.oF)}${sbB(f.to,'EGKK',f.cd,f.rF,f.rF)}
+                ${isMyFlight?`<button class="sbtn split-bid" onclick="showSplitModal('${day}','${f.oF}','${f.rF}','${f.to}','${f.ac}','${f.rg}')">🔀 Propose Split</button>`:''}
+            </div>
+        </div>
+    </div>`;
+}
+
+function cardOUT(f,pilot){
+    const isSplit=f.p&&f.p.who!==pilot;
+    const isSelf=f.p&&f.p.who===pilot;
+    const cls=isSplit?'split-card':isSelf?'overnight':'';
+    const tag=isSplit?'sp-tag':'ov-tag';
+    const tagLabel=isSplit?'Split':'Overnight';
+    const fnCls=isSplit?'sp-out':'ov-out';
+    return `<div class="fc ${cls} ${f.h}">
+        <div class="fch">
+            <span class="type-tag ${tag}">${tagLabel} →</span>
+            <span class="fn ${fnCls}">${f.fn} →</span>
+            <span class="hpill ${f.h}">${f.h}</span>
+        </div>
+        <div class="info-bar ${isSplit?'split-info':'overnight-info'}">
+            Outbound sector · Aircraft stays at <strong>${f.to}</strong> overnight<br>
+            Return <span class="${isSplit?'hl-sp':'hl-ov'}">${f.p.fn}</span> by <strong>${f.p.who}</strong> on <strong>${f.p.day}</strong>
+        </div>
+        ${routeVis('EGKK',f.to,f.h)}
+        <div class="cfoot">
+            <span class="acb">${f.ac}</span><span class="acreg">${f.rg}</span>
+            <div class="cacts">${sbB('EGKK',f.to,f.cd,f.fn,f.fn)}</div>
+        </div>
+    </div>`;
+}
+
+function cardRET(f,pilot){
+    const isSplit=f.p&&f.p.who!==pilot;
+    const isSelf=f.p&&f.p.who===pilot;
+    const cls=isSplit?'split-card':isSelf?'overnight':'';
+    const tag=isSplit?'sp-tag':'ov-tag';
+    const tagLabel=isSplit?'Split':'Overnight';
+    const fnCls=isSplit?'sp-ret':'ov-ret';
+    return `<div class="fc ${cls} ${f.h}">
+        <div class="fch">
+            <span class="type-tag ${tag}">← ${tagLabel}</span>
+            <span class="fn ${fnCls}">← ${f.fn}</span>
+            <span class="hpill ${f.h}">${f.h}</span>
+        </div>
+        <div class="info-bar ${isSplit?'split-info':'overnight-info'}">
+            Return sector · Aircraft repositioning from <strong>${f.fr}</strong><br>
+            Outbound <span class="${isSplit?'hl-sp':'hl-ov'}">${f.p.fn}</span> by <strong>${f.p.who}</strong> on <strong>${f.p.day}</strong>
+        </div>
+        ${routeVis(f.fr,'EGKK',f.h)}
+        <div class="cfoot">
+            <span class="acb">${f.ac}</span><span class="acreg">${f.rg}</span>
+            <div class="cacts">${sbB(f.fr,'EGKK',f.cd,f.fn,f.fn)}</div>
+        </div>
+    </div>`;
+}
+
+function cardML(f){
+    return `<div class="mlc">
+        <div class="mlh">${f.label||'Multi-Leg'}</div>
+        <div class="legs">${f.legs.map(l=>`
+            <div class="leg">
+                <span class="lfn">${l.fn}</span>
+                <span class="lc" onclick="openNG('${l.fr}')">${l.fr}</span>
+                <span class="la">→</span>
+                <span class="lc" onclick="openNG('${l.to}')">${l.to}</span>
+                <span class="lcity">${(AP[l.to]||{c:''}).c}</span>
+                <span style="margin-left:auto">${sbB(l.fr,l.to,f.cd,l.fn,'OFP')}</span>
+            </div>
+        `).join('')}</div>
+        <div class="cfoot">
+            <span class="acb">${f.ac}</span><span class="acreg">${f.rg}</span>
+        </div>
+    </div>`;
+}
+
+function renderCard(f,pilot,day){
+    if(f.t==='rt')return cardRT(f,pilot,day);
+    if(f.t==='out')return cardOUT(f,pilot);
+    if(f.t==='ret')return cardRET(f,pilot);
+    if(f.t==='ml')return cardML(f);
+    return '';
+}
+
+function countSectors(flights){
+    let c=0;
+    flights.forEach(f=>{
+        if(f.t==='rt')c+=2;
+        else if(f.t==='out'||f.t==='ret')c+=1;
+        else if(f.t==='ml')c+=f.legs.length;
+    });
+    return c;
+}
+
+function pilotCol(name,init,cls,flights,day){
+    const sec=countSectors(flights);
+    return `<div class="pcol">
+        <div class="phead">
+            <div class="pav ${cls}">${init}</div>
+            <div><div class="pname">${name}</div><div class="prole">First Officer</div></div>
+            <div class="pstats">
+                <div class="pst"><div class="n">${flights.length}</div><div class="l">Duties</div></div>
+                <div class="pst"><div class="n">${sec}</div><div class="l">Sectors</div></div>
+            </div>
+        </div>
+        <div class="flist">${flights.map(f=>renderCard(f,name,day)).join('')}</div>
+    </div>`;
+}
+
+function acTracker(){
+    return `<div class="sec">
+        <div class="sec-t">📡 Aircraft Positions (End of Day)</div>
+        <div class="ac-tracker"><table class="act">
+            <thead><tr><th>Aircraft</th><th>Type</th>${DL.map((d,i)=>`<th${i===DAYS.indexOf(activeDay)?' style="color:#38bdf8"':''}>${DS[i]}</th>`).join('')}</tr></thead>
+            <tbody>${FLEET.map(a=>{
+                const pos=ACP[a.name];
+                return `<tr>
+                    <td style="color:#e2e8f0;font-weight:600">${a.name}</td>
+                    <td style="color:#475569">${a.code}</td>
+                    ${pos.map((p,i)=>`<td><span class="pos-badge ${p==='EGKK'?'home':'away'}"${i===DAYS.indexOf(activeDay)?' style="font-weight:700"':''}>${p}</span></td>`).join('')}
+                </tr>`;
+            }).join('')}</tbody>
+        </table></div>
+    </div>`;
+}
+
+function fleetSec(){
+    return `<div class="sec" style="margin-top:16px">
+        <div class="sec-t">✈ Fleet Overview</div>
+        <div class="fg">${FLEET.map(a=>`<div class="fi"><div class="fii ${a.cat}">${a.code}</div><div><div class="fin">${a.name}</div><div class="fis">${a.type}</div></div></div>`).join('')}</div>
+    </div>`;
+}
+
+function routeTbl(){
+    return `<div class="sec" style="margin-top:16px">
+        <div class="sec-t">🌐 Route Network & Flight Numbers</div>
+        <div style="overflow-x:auto"><table class="rtbl">
+            <thead><tr><th>Outbound</th><th></th><th>Return</th><th>Route</th><th>Service</th><th>Type</th></tr></thead>
+            <tbody>${R.out.map((o,i)=>`<tr>
+                <td style="color:#38bdf8;font-weight:700">${o}</td>
+                <td style="color:#293548;text-align:center">⟷</td>
+                <td style="color:#7dd3fc;font-weight:700">${R.ret[i]}</td>
+                <td style="color:#e2e8f0;font-weight:600">${R.route[i]}</td>
+                <td style="color:#94a3b8">${R.name[i]}</td>
+                <td><span class="hpill ${R.haul[i]}">${R.haul[i]}</span></td>
+            </tr>`).join('')}</tbody>
+        </table></div>
+    </div>`;
+}
+
+function render(){
+    const d=S[activeDay];
+    document.getElementById('main').innerHTML=`
+        <div class="day-content">
+            <div class="pg">
+                ${pilotCol('Thomas','T','th',d.thomas,activeDay)}
+                ${pilotCol('Alex','A','al',d.alex,activeDay)}
+            </div>
+        </div>
+        ${acTracker()}
+        ${fleetSec()}
+        ${routeTbl()}
+        <div class="footer">
+            NewSky Virtual Airlines — Hub: EGKK London Gatwick · BA-style flight numbers<br>
+            Aircraft must return to EGKK before flying a different route · Not every flight must be completed each day<br>
+            Flight numbers: Outbound & return are linked consecutive pairs
+        </div>
+    `;
+}
+
+// ══════════ TABS ══════════
+function buildTabs(){
+    const el=document.getElementById('dayTabs');
+    el.innerHTML=DAYS.map((d,i)=>`
+        <div class="dtab${d===activeDay?' active':''}" data-day="${d}">
+            <span class="df">${DL[i]}</span><span class="ds">${DS[i]}</span>
+            ${i===todayIdx?'<div class="td"></div>':''}
+        </div>
+    `).join('');
+    el.querySelectorAll('.dtab').forEach(tab=>{
+        tab.onclick=()=>{
+            activeDay=tab.dataset.day;
+            el.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active');
+            render();
+        };
+    });
+}
+
+// ══════════ INIT ══════════
+buildTabs();
+loadSettings();
+setViewer(viewer);
+renderNotifs();
+render();
+</script>
+</body>
+</html>
